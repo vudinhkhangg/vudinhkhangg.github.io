@@ -30,6 +30,12 @@ function renderFeaturedProducts() {
     const productGrid = document.querySelector('#featuredProductsGrid');
     if (!productGrid) return;
 
+    // Guard: products may not be loaded yet on some hosts
+    if (typeof products === 'undefined' || !Array.isArray(products)) {
+        console.warn('Products data not available yet. Retrying...');
+        return;
+    }
+
     const featuredProducts = products.filter(p => p.featured).slice(0, 8);
     
     productGrid.innerHTML = featuredProducts.map(product => `
@@ -49,6 +55,26 @@ function renderFeaturedProducts() {
             </a>
         </article>
     `).join('');
+}
+
+// Ensure rendering runs reliably on all hosts (e.g., GitHub Pages)
+function initFeaturedProductsSection() {
+    const container = document.querySelector('#featuredProductsGrid');
+    if (!container) return;
+
+    // Retry until products are available (max ~1.5s)
+    let tries = 0;
+    const maxTries = 15;
+    const timer = setInterval(() => {
+        tries += 1;
+        if (typeof products !== 'undefined' && Array.isArray(products)) {
+            clearInterval(timer);
+            renderFeaturedProducts();
+        } else if (tries >= maxTries) {
+            clearInterval(timer);
+            container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-12">Không thể tải dữ liệu sản phẩm. Vui lòng tải lại trang.</p>';
+        }
+    }, 100);
 }
 
 // ===== RENDER ALL PRODUCTS (Dùng cho trang shop) =====
@@ -405,7 +431,8 @@ function setupNewsletterForm() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-    renderFeaturedProducts();
+    // Run robust init for featured products (handles GitHub Pages timing)
+    initFeaturedProductsSection();
     renderAllProducts();
     setupShopFilters();
     renderProductDetail();
@@ -413,3 +440,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMobileFilterToggle();
     setupNewsletterForm();
 });
+
+// Also initialize immediately if DOM is already parsed (defensive)
+if (document.readyState !== 'loading') {
+    try { initFeaturedProductsSection(); } catch (e) { console.warn(e); }
+}
