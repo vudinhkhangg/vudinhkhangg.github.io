@@ -78,16 +78,25 @@ function initFeaturedProductsSection() {
 }
 
 // ===== RENDER ALL PRODUCTS (Dùng cho trang shop) =====
-function renderAllProducts(productsToRender = products) {
+function renderAllProducts(productsToRender) {
     const productGrid = document.querySelector('.shop-products .product-grid');
     if (!productGrid) return;
 
-    if (productsToRender.length === 0) {
+    const source = Array.isArray(productsToRender)
+        ? productsToRender
+        : (typeof products !== 'undefined' && Array.isArray(products) ? products : null);
+
+    if (!source) {
+        // Products chưa sẵn sàng, không render
+        return;
+    }
+
+    if (source.length === 0) {
         productGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-12">Không tìm thấy sản phẩm nào phù hợp.</p>';
         return;
     }
 
-    productGrid.innerHTML = productsToRender.map(product => `
+    productGrid.innerHTML = source.map(product => `
         <article class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden">
             <a href="product-detail.html?id=${product.id}" class="block">
                 <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
@@ -104,6 +113,25 @@ function renderAllProducts(productsToRender = products) {
             </a>
         </article>
     `).join('');
+}
+
+// Ensure shop grid renders when products are ready
+function initShopProductsSection() {
+    const grid = document.querySelector('.shop-products .product-grid');
+    if (!grid) return;
+
+    let tries = 0;
+    const maxTries = 15;
+    const timer = setInterval(() => {
+        tries += 1;
+        if (typeof products !== 'undefined' && Array.isArray(products)) {
+            clearInterval(timer);
+            renderAllProducts(products);
+        } else if (tries >= maxTries) {
+            clearInterval(timer);
+            grid.innerHTML = '<p class="col-span-full text-center text-gray-500 py-12">Không thể tải dữ liệu sản phẩm. Vui lòng tải lại trang.</p>';
+        }
+    }, 100);
 }
 
 // ===== FILTER & SEARCH (Trang Shop) =====
@@ -433,7 +461,8 @@ function setupNewsletterForm() {
 document.addEventListener('DOMContentLoaded', () => {
     // Run robust init for featured products (handles GitHub Pages timing)
     initFeaturedProductsSection();
-    renderAllProducts();
+    // Robust init for shop grid
+    initShopProductsSection();
     setupShopFilters();
     renderProductDetail();
     setupContactForm();
