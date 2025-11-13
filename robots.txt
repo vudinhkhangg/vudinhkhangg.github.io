@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Live domain sitemap
+Sitemap: https://shopthoitrang.me/sitemap.xml
